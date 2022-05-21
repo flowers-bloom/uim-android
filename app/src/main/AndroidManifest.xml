@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.github.flowersbloom">
 
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name="com.github.flowersbloom.UimApp"
         android:allowBackup="true"
@@ -12,7 +15,7 @@
         android:theme="@style/Theme.Uim">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".activity.MainActivity"
             android:windowSoftInputMode="adjustResize|stateHidden"
             android:exported="true">
             <intent-filter>
@@ -21,6 +24,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".activity.VideoChatActivity"/>
     </application>
 
 </manifest>

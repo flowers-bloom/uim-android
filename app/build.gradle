@@ -29,6 +29,7 @@ android {
     viewBinding {
         enabled = true
     }
+    compileSdkVersion 28
 }
 
 dependencies {

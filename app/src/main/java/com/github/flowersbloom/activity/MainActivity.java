@@ -1,6 +1,8 @@
-package com.github.flowersbloom;
+package com.github.flowersbloom.activity;
 
 
+import android.Manifest;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -9,13 +11,13 @@ import android.view.View;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.github.flowersbloom.adapter.ChatMsgAdapter;
 import com.github.flowersbloom.databinding.MainActivityBinding;
 import com.github.flowersbloom.entity.ChatMsg;
 import com.github.flowersbloom.util.SoftInputListener;
-import com.github.flowersbloom.util.ToastUtil;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,6 +35,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         super.onCreate(savedInstanceState);
         binding = MainActivityBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.CAMERA
+        }, 1);
 
         handler = new Handler(this);
 
@@ -95,7 +101,9 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         binding.titleLayout.backIc.setVisibility(View.GONE);
         binding.titleLayout.titleNameTv.setText("UIM");
         binding.titleLayout.actionBarIv.setOnClickListener(v -> {
-            ToastUtil.toast("action click");
+            Intent intent = new Intent();
+            intent.setClass(MainActivity.this, VideoChatActivity.class);
+            startActivity(intent);
         });
     }
 

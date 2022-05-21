@@ -1,4 +1,4 @@
-package com.github.flowersbloom;
+package com.github.flowersbloom.activity;
 
 import android.content.Context;
 import android.view.View;
