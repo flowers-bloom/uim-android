@@ -8,7 +8,7 @@ import android.view.SurfaceView;
 
 import androidx.annotation.NonNull;
 
-import com.github.flowersbloom.H265Encoder;
+import com.github.flowersbloom.H264Encoder;
 
 import java.io.IOException;
 
@@ -17,7 +17,7 @@ public class LocalSurfaceView extends SurfaceView
 
     private Camera camera;
     private Camera.Size cameraSize;
-    private H265Encoder h265Encoder;
+    private H264Encoder h264Encoder;
 
     public LocalSurfaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -25,15 +25,15 @@ public class LocalSurfaceView extends SurfaceView
     }
 
     public void startCapture() {
-        h265Encoder = new H265Encoder(cameraSize.width, cameraSize.height);
-        h265Encoder.start();
+        h264Encoder = new H264Encoder(cameraSize.width, cameraSize.height);
+        h264Encoder.startLive();
     }
 
     @Override
     public void onPreviewFrame(byte[] bytes, Camera camera) {
         //视频数据流通过编码器编码后再进行网络传输
-        if (h265Encoder != null) {
-            //h265Encoder.encodeFrame(bytes);
+        if (h264Encoder != null) {
+            h264Encoder.encodeFrame(bytes);
         }
         this.camera.addCallbackBuffer(bytes);
     }

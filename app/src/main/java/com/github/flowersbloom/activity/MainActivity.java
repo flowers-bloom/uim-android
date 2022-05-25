@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -14,21 +15,38 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.alibaba.fastjson.JSON;
+import com.github.flowersbloom.GlobalConstant;
 import com.github.flowersbloom.adapter.ChatMsgAdapter;
+import com.github.flowersbloom.client.handler.MessageAcceptHandler;
 import com.github.flowersbloom.databinding.MainActivityBinding;
 import com.github.flowersbloom.entity.ChatMsg;
 import com.github.flowersbloom.util.SoftInputListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends BaseActivity implements Handler.Callback {
+import io.github.flowersbloom.udp.NettyClient;
+import io.github.flowersbloom.udp.handler.MessageCallback;
+import io.github.flowersbloom.udp.handler.MessageListener;
+import io.github.flowersbloom.udp.packet.BasePacket;
+import io.github.flowersbloom.udp.packet.BroadcastDataPacket;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.channel.socket.nio.NioDatagramChannel;
+
+public class MainActivity extends BaseActivity
+        implements Handler.Callback, MessageListener {
     public static final int SCROLL_BOTTOM_SIGNAL = 1;
+    public static final String TAG = "MainActivity";
 
     private MainActivityBinding binding;
     private ChatMsgAdapter adapter;
     public Handler handler;
+    private static NettyClient nettyClient;
+    public static NioDatagramChannel channel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,14 +55,26 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         setContentView(binding.getRoot());
 
         ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.CAMERA
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
         }, 1);
 
         handler = new Handler(this);
 
         initView();
         bindData();
+        initClient();
         initListener();
+    }
+
+    private void initClient() {
+        new Thread(() -> {
+            nettyClient = new NettyClient(GlobalConstant.user,
+                    GlobalConstant.serverAddress,
+                    Arrays.asList(new MessageAcceptHandler()));
+            channel = nettyClient.datagramChannel;
+            Log.i(TAG, "nettyClient start");
+        }).start();
     }
 
     public void initView() {
@@ -70,17 +100,27 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     }
 
     public void initListener() {
+        MessageCallback.subscribe(this);
         binding.sendBtn.setOnClickListener(v -> {
+            String content = binding.inputEt.getText().toString();
             ChatMsg chatMsg = new ChatMsg();
             adapter.insertItem(chatMsg);
             chatMsg.setItemType(ChatMsg.RIGHT_TYPE);
             chatMsg.setUserId("");
             chatMsg.setUserAvatar("");
             chatMsg.setUserNickname("flowers-bloom");
-            chatMsg.setContent(binding.inputEt.getText().toString());
+            chatMsg.setContent(content);
             chatMsg.setSendTime(new Date());
             binding.inputEt.setText("");
             msgListScrollToBottom();
+
+            BroadcastDataPacket broadcastDataPacket = new BroadcastDataPacket();
+            broadcastDataPacket.setSenderId(GlobalConstant.user.getUserId());
+            broadcastDataPacket.setContent(content);
+            String out = JSON.toJSONString(broadcastDataPacket);
+            channel.writeAndFlush(new DatagramPacket(
+                    Unpooled.copiedBuffer(out.getBytes()), GlobalConstant.serverAddress
+            ));
         });
         SoftInputListener.setListener(this, new SoftInputListener.OnSoftKeyBoardChangeListener() {
             @Override
@@ -156,5 +196,27 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         }
         return false;
+    }
+
+    @Override
+    public void handle(BasePacket basePacket) {
+        if (basePacket instanceof BroadcastDataPacket) {
+            BroadcastDataPacket broadcastDataPacket = (BroadcastDataPacket) basePacket;
+            ChatMsg chatMsg = new ChatMsg();
+            if (broadcastDataPacket.getSenderId().equals(GlobalConstant.user.getUserId())) {
+                chatMsg.setItemType(ChatMsg.RIGHT_TYPE);
+            }else {
+                chatMsg.setItemType(ChatMsg.LEFT_TYPE);
+            }
+            chatMsg.setMsgType("");
+            chatMsg.setUserId(broadcastDataPacket.getSenderId());
+            chatMsg.setUserNickname("未知");
+            chatMsg.setContent(broadcastDataPacket.getContent());
+            chatMsg.setSendTime(new Date());
+            runOnUiThread(() -> {
+                adapter.insertItem(chatMsg);
+                msgListScrollToBottom();
+            });
+        }
     }
 }

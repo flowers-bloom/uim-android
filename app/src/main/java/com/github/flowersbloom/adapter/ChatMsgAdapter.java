@@ -1,6 +1,6 @@
 package com.github.flowersbloom.adapter;
 
-import android.content.Context;
+import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,15 +17,16 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class ChatMsgAdapter extends RecyclerView.Adapter<ChatMsgAdapter.ViewHolder> {
     private static final SimpleDateFormat SDF = new SimpleDateFormat("MM.dd HH:mm");
 
-    private Context context;
+    private Activity activity;
     private String myId;
     private List<ChatMsg> msgList;
 
-    public ChatMsgAdapter(Context context, String myId, List<ChatMsg> msgList) {
-        this.context = context;
+    public ChatMsgAdapter(Activity activity, String myId, List<ChatMsg> msgList) {
+        this.activity = activity;
         this.myId = myId;
         this.msgList = new ArrayList<>(msgList);
     }
@@ -35,9 +36,9 @@ public class ChatMsgAdapter extends RecyclerView.Adapter<ChatMsgAdapter.ViewHold
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view;
         if (viewType == ChatMsg.LEFT_TYPE) {
-            view = LayoutInflater.from(context).inflate(R.layout.adapter_left_text_msg, parent, false);
+            view = LayoutInflater.from(activity).inflate(R.layout.adapter_left_text_msg, parent, false);
         }else {
-            view = LayoutInflater.from(context).inflate(R.layout.adapter_right_text_msg, parent, false);
+            view = LayoutInflater.from(activity).inflate(R.layout.adapter_right_text_msg, parent, false);
         }
         return new ViewHolder(view);
     }
