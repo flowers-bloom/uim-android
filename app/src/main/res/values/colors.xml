@@ -11,7 +11,10 @@
     <color name="chat_item_left_white">#FFFFFFFF</color>
     <color name="chat_item_right_blue">#2196F3</color>
 
+    <color name="activity_gray_bg">#F1F0F0</color>
     <color name="blue_title">#299EE3</color>
     <color name="chat_gray_bg">#F1F0F0</color>
     <color name="send_btn_gray_bg">#E7E7E7</color>
+    <color name="arrow_gray_bg">#C8C7C7</color>
+    <color name="red_bg">#FF5757</color>
 </resources>

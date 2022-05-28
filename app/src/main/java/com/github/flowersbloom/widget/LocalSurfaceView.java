@@ -1,5 +1,6 @@
 package com.github.flowersbloom.widget;
 
+import android.app.Activity;
 import android.content.Context;
 import android.hardware.Camera;
 import android.util.AttributeSet;
@@ -11,22 +12,40 @@ import androidx.annotation.NonNull;
 import com.github.flowersbloom.H264Encoder;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class LocalSurfaceView extends SurfaceView
         implements SurfaceHolder.Callback, Camera.PreviewCallback {
 
     private Camera camera;
     private Camera.Size cameraSize;
     private H264Encoder h264Encoder;
+    private CompletableFuture<Integer> initCameraFuture;
 
     public LocalSurfaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
         getHolder().addCallback(this);
+        initCameraFuture = new CompletableFuture<>();
     }
 
-    public void startCapture() {
-        h264Encoder = new H264Encoder(cameraSize.width, cameraSize.height);
-        h264Encoder.startLive();
+    public void startCapture(Activity activity, InetSocketAddress dstAddress) {
+        new Thread(() -> {
+            try {
+                initCameraFuture.get(10, TimeUnit.SECONDS);
+            }catch (Exception e) {
+                log.error("startCapture e:{}", e.getMessage());
+            }
+            log.info("init camera success");
+            activity.runOnUiThread(() -> {
+                h264Encoder = new H264Encoder(cameraSize.width, cameraSize.height, dstAddress);
+                h264Encoder.startLive();
+            });
+        }).start();
     }
 
     @Override
@@ -65,6 +84,7 @@ public class LocalSurfaceView extends SurfaceView
             camera.addCallbackBuffer(buffer);
             camera.setPreviewCallbackWithBuffer(this);
             camera.startPreview();
+            initCameraFuture.complete(1);
         } catch (IOException e) {
             e.printStackTrace();
         }

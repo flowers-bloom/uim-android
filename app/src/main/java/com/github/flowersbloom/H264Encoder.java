@@ -3,25 +3,27 @@ package com.github.flowersbloom;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
-import android.util.Log;
 
-import com.github.flowersbloom.activity.MainActivity;
+import com.github.flowersbloom.client.packet.VideoDataPacket;
+import com.github.flowersbloom.client.packet.VideoHeaderPacket;
 import com.github.flowersbloom.util.YuvUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-import io.github.flowersbloom.udp.packet.VideoDataPacket;
-import io.github.flowersbloom.udp.packet.VideoHeaderPacket;
-import io.github.flowersbloom.udp.transfer.PacketTransfer;
+import io.github.flowersbloom.udp.transfer.MultiplePacketTransferBuilder;
 import io.github.flowersbloom.udp.transfer.TransferFuture;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class H264Encoder {
     private static final String TAG = "H264Encoder";
+    private final InetSocketAddress dstAddress;
+
+    private int width = 1080;
+    private int height = 1920;
     private MediaCodec mediaCodec;
-    int width = 1080;
-    int height = 1920;
     //    nv21转换成nv12的数据
     byte[] nv12;
     //    旋转之后的yuv数据
@@ -33,9 +35,11 @@ public class H264Encoder {
     int frameIndex;
 
 
-    public H264Encoder(int width, int height) {
+    public H264Encoder(int width, int height, InetSocketAddress dstAddress) {
         this.width = width;
         this.height = height;
+        this.dstAddress = dstAddress;
+        log.info("H264Encoder dstAddress:{}", dstAddress);
     }
 
     public void startLive() {
@@ -117,29 +121,28 @@ public class H264Encoder {
 
     public void sendData(byte[] bytes) {
         try {
-            Thread.sleep(100);
+            Thread.sleep(500);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        Log.i(TAG, "encode bytes length: " + bytes.length);
+        log.info("encode bytes length:{}", bytes.length);
         VideoHeaderPacket videoHeaderPacket = new VideoHeaderPacket();
         videoHeaderPacket.setBytesLength(bytes.length);
         VideoDataPacket videoDataPacket = new VideoDataPacket();
         videoDataPacket.setBytes(bytes);
 
         long cur = System.currentTimeMillis();
-        PacketTransfer transfer = new PacketTransfer();
-        TransferFuture future = transfer.channel(MainActivity.channel)
-                .dstAddress(new InetSocketAddress(GlobalConstant.DST_ADDRESS, GlobalConstant.DST_PORT))
+        MultiplePacketTransferBuilder builder = new MultiplePacketTransferBuilder();
+        TransferFuture future = builder.channel(GlobalObject.channel)
+                .dstAddress(dstAddress)
                 .headerPacket(videoHeaderPacket)
                 .dataPacket(videoDataPacket)
-                .isSlice(true)
+                .build()
                 .execute();
         future.addListener(f -> {
             if (f.isSuccess()) {
-                Log.i(TAG, "videoPacket send success, serialNumber, "+
-                        videoHeaderPacket.getSerialNumber()+" ,cost: ms"+
-                        (System.currentTimeMillis() - cur));
+//                log.info("videoPacket send success, serialNumber:{} cost {} ms",
+//                        videoHeaderPacket.getSerialNumber(), (System.currentTimeMillis() - cur));
             }
         });
     }

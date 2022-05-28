@@ -4,15 +4,24 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Code/Android/uim/app/src/main/res/drawable/bg_chat_left_item.xml" value="0.25092592592592594" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/drawable/ic_alert_info.xml" value="0.21458333333333332" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/drawable/ic_arrow_right.xml" value="0.20625" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/drawable/ic_default_head.xml" value="0.25092592592592594" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/drawable/ic_hang_up.xml" value="0.21458333333333332" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/drawable/shape_circle_btn.xml" value="0.21458333333333332" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/layout/active_list_activity.xml" value="0.217578125" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/activity_main.xml" value="0.2564814814814815" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/layout/adapter_active_item.xml" value="0.17430555555555555" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/adapter_left_text_msg.xml" value="0.19236111111111112" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/adapter_right_text_msg.xml" value="0.2856410256410256" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/layout/chat_info_activity.xml" value="0.17430555555555555" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/chat_setting_activity.xml" value="0.217578125" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/layout/layout_click_item.xml" value="0.22" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/layout_title_bar.xml" value="0.217578125" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/layout_titlebar.xml" value="0.2564814814814815" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/main_activity.xml" value="0.19236111111111112" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/rtsp_activity.xml" value="0.217578125" />
+        <entry key="..\:/Code/Android/uim/app/src/main/res/layout/user_profile_activity.xml" value="0.17916666666666667" />
         <entry key="..\:/Code/Android/uim/app/src/main/res/layout/video_chat_activity.xml" value="0.217578125" />
       </map>
     </option>

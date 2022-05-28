@@ -1,19 +1,25 @@
 package com.github.flowersbloom.client.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.github.flowersbloom.client.BizCommand;
+import com.github.flowersbloom.client.packet.ActiveDataPacket;
+import com.github.flowersbloom.client.packet.P2PDataPacket;
+import com.github.flowersbloom.client.packet.VideoCallPacket;
+import com.github.flowersbloom.client.packet.VideoCallResultPacket;
+import com.github.flowersbloom.client.packet.VideoDataPacket;
 
 import java.net.InetSocketAddress;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.github.flowersbloom.udp.Command;
 import io.github.flowersbloom.udp.NettyConstant;
 import io.github.flowersbloom.udp.handler.MessageCallback;
 import io.github.flowersbloom.udp.packet.AckPacket;
 import io.github.flowersbloom.udp.packet.ConfirmPacket;
-import io.github.flowersbloom.udp.packet.P2PDataPacket;
-import io.github.flowersbloom.udp.packet.VideoDataPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
@@ -27,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MessageAcceptHandler extends SimpleChannelInboundHandler<DatagramPacket>
                         implements MessageCallback {
+    private ExecutorService executorService = Executors.newCachedThreadPool();
     private static final ConcurrentHashMap<Long, VideoContainer> MULTIPLE_SLICE_CACHE
             = new ConcurrentHashMap<>();
 
@@ -38,12 +45,14 @@ public class MessageAcceptHandler extends SimpleChannelInboundHandler<DatagramPa
 
         switch (command) {
             case Command.ACK_PACKET:
-                AckPacket ackPacket = new AckPacket();
-                ackPacket.setSerialNumber(serialNumber);
-                notice(ackPacket);
-                log.info("serialNumber:{} ack", serialNumber);
+                executorService.execute(() -> {
+                    AckPacket ackPacket = new AckPacket();
+                    ackPacket.setSerialNumber(serialNumber);
+                    notice(ackPacket);
+                    log.info("serialNumber:{} ack", serialNumber);
+                });
                 break;
-            case Command.P2P_DATA_PACKET:
+            case BizCommand.P2P_DATA_PACKET:
                 byte[] dst = new byte[byteBuf.readableBytes()];
                 byteBuf.readBytes(dst);
                 P2PDataPacket p2PDataPacket = JSON.parseObject(new String(dst), P2PDataPacket.class);
@@ -57,13 +66,33 @@ public class MessageAcceptHandler extends SimpleChannelInboundHandler<DatagramPa
                 byteBuf.writeBytes(out.getBytes());
                 ctx.channel().writeAndFlush(new DatagramPacket(byteBuf, msg.sender()));
                 break;
-            case Command.VIDEO_HEADER_PACKET:
+            case BizCommand.ACTIVE_DATA_PACKET:
+                dst = new byte[byteBuf.readableBytes()];
+                byteBuf.readBytes(dst);
+                log.info("active list:{}", new String(dst));
+                ActiveDataPacket activeDataPacket = JSON.parseObject(new String(dst), ActiveDataPacket.class);
+                notice(activeDataPacket);
+                break;
+            case BizCommand.VIDEO_CALL_PACKET:
+                dst = new byte[byteBuf.readableBytes()];
+                byteBuf.readBytes(dst);
+                VideoCallPacket videoCallPacket = JSON.parseObject(new String(dst), VideoCallPacket.class);
+                log.info("sender:{}", msg.sender());
+                videoCallPacket.getSender().setAddress(msg.sender());
+                notice(videoCallPacket);
+                break;
+            case BizCommand.VIDEO_CALL_RESULT_PACKET:
+                VideoCallResultPacket resultPacket = new VideoCallResultPacket();
+                resultPacket.setStatus(byteBuf.readByte());
+                notice(resultPacket);
+                break;
+            case BizCommand.VIDEO_HEADER_PACKET:
                 int totalCount = byteBuf.readInt();
                 VideoContainer container = new VideoContainer(totalCount);
                 MULTIPLE_SLICE_CACHE.put(serialNumber, container);
                 sendAckPacket(serialNumber, ctx.channel(), msg.sender());
                 log.info("serialNumber:{} totalCount:{}", serialNumber, totalCount);
-                new Thread(() -> {
+                executorService.execute(() -> {
                     try {
                         Thread.sleep(NettyConstant.MSG_SEND_TIMEOUT_SECONDS * 1000);
                     } catch (InterruptedException e) {
@@ -73,36 +102,36 @@ public class MessageAcceptHandler extends SimpleChannelInboundHandler<DatagramPa
                         log.error("serialNumber timeout:{}", serialNumber);
                         MULTIPLE_SLICE_CACHE.remove(serialNumber);
                     }
-                }).start();
+                });
                 break;
-            case Command.VIDEO_DATA_PACKET:
+            case BizCommand.VIDEO_DATA_PACKET:
                 int sliceId = byteBuf.readInt();
                 dst = new byte[byteBuf.readableBytes()];
                 byteBuf.readBytes(dst);
                 VideoSlice videoSlice = new VideoSlice();
                 videoSlice.setId(sliceId);
                 videoSlice.setBytes(dst);
-                container = MULTIPLE_SLICE_CACHE.get(serialNumber);
-                if (container == null) {
+                VideoContainer container1 = MULTIPLE_SLICE_CACHE.get(serialNumber);
+                if (container1 == null) {
                     log.warn("container not found");
                 }else {
-                    container.getQueue().offer(videoSlice);
-                    if (container.getQueue().size() == container.getTotalCount()) {
+                    container1.getQueue().offer(videoSlice);
+                    if (container1.getQueue().size() == container1.getTotalCount()) {
                         sendAckPacket(serialNumber, ctx.channel(), msg.sender());
                         log.info("serialNumber:{} recv all slice", serialNumber);
 
                         //merge
-                        PriorityQueue<VideoSlice> queue = container.getQueue();
-                        byteBuf = ByteBufAllocator.DEFAULT.buffer();
+                        PriorityQueue<VideoSlice> queue = container1.getQueue();
+                        ByteBuf byteBuf1 = ByteBufAllocator.DEFAULT.buffer();
                         while (!queue.isEmpty()) {
                             VideoSlice slice = queue.poll();
-                            byteBuf.writeBytes(slice.getBytes());
+                            byteBuf1.writeBytes(slice.getBytes());
                         }
 
-                        dst = new byte[byteBuf.readableBytes()];
-                        byteBuf.readBytes(dst);
+                        byte[] dst1 = new byte[byteBuf1.readableBytes()];
+                        byteBuf1.readBytes(dst1);
                         VideoDataPacket videoDataPacket = new VideoDataPacket();
-                        videoDataPacket.setBytes(dst);
+                        videoDataPacket.setBytes(dst1);
                         notice(videoDataPacket);
 
                         MULTIPLE_SLICE_CACHE.remove(serialNumber);

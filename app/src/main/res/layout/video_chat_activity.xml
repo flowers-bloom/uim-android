@@ -16,12 +16,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <Button
-        android:id="@+id/call_btn"
-        android:layout_width="100dp"
-        android:layout_height="50dp"
-        android:layout_marginBottom="50dp"
+    <ImageView
+        android:id="@+id/hangup_iv"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:visibility="gone"
+        android:scaleType="centerInside"
+        android:layout_marginBottom="100dp"
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
-        android:text="呼叫"/>
+        android:src="@drawable/ic_hang_up"
+        android:background="@drawable/shape_circle_btn"/>
 </RelativeLayout>

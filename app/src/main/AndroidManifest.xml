@@ -29,6 +29,8 @@
 
         <activity android:name=".activity.VideoChatActivity"/>
         <activity android:name=".activity.ChatInfoActivity"/>
+        <activity android:name=".activity.ActiveListActivity"/>
+        <activity android:name=".activity.UserProfileActivity"/>
     </application>
 
 </manifest>

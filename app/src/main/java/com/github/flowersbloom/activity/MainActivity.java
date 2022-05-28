@@ -16,37 +16,32 @@ import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.alibaba.fastjson.JSON;
-import com.github.flowersbloom.GlobalConstant;
+import com.github.flowersbloom.GlobalObject;
 import com.github.flowersbloom.adapter.ChatMsgAdapter;
 import com.github.flowersbloom.client.handler.MessageAcceptHandler;
+import com.github.flowersbloom.client.packet.BroadcastDataPacket;
 import com.github.flowersbloom.databinding.MainActivityBinding;
 import com.github.flowersbloom.entity.ChatMsg;
 import com.github.flowersbloom.util.SoftInputListener;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 import io.github.flowersbloom.udp.NettyClient;
-import io.github.flowersbloom.udp.handler.MessageCallback;
-import io.github.flowersbloom.udp.handler.MessageListener;
 import io.github.flowersbloom.udp.packet.BasePacket;
-import io.github.flowersbloom.udp.packet.BroadcastDataPacket;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.channel.socket.nio.NioDatagramChannel;
 
 public class MainActivity extends BaseActivity
-        implements Handler.Callback, MessageListener {
+        implements Handler.Callback {
     public static final int SCROLL_BOTTOM_SIGNAL = 1;
     public static final String TAG = "MainActivity";
 
     private MainActivityBinding binding;
     private ChatMsgAdapter adapter;
     public Handler handler;
-    private static NettyClient nettyClient;
-    public static NioDatagramChannel channel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,10 +64,11 @@ public class MainActivity extends BaseActivity
 
     private void initClient() {
         new Thread(() -> {
-            nettyClient = new NettyClient(GlobalConstant.user,
-                    GlobalConstant.serverAddress,
-                    Arrays.asList(new MessageAcceptHandler()));
-            channel = nettyClient.datagramChannel;
+            NettyClient nettyClient = new NettyClient(GlobalObject.ME,
+                    GlobalObject.serverAddress,
+                    new ChannelInboundHandler[]{new MessageAcceptHandler()});
+            GlobalObject.nettyClient = nettyClient;
+            GlobalObject.channel = nettyClient.datagramChannel;
             Log.i(TAG, "nettyClient start");
         }).start();
     }
@@ -100,7 +96,6 @@ public class MainActivity extends BaseActivity
     }
 
     public void initListener() {
-        MessageCallback.subscribe(this);
         binding.sendBtn.setOnClickListener(v -> {
             String content = binding.inputEt.getText().toString();
             ChatMsg chatMsg = new ChatMsg();
@@ -115,11 +110,11 @@ public class MainActivity extends BaseActivity
             msgListScrollToBottom();
 
             BroadcastDataPacket broadcastDataPacket = new BroadcastDataPacket();
-            broadcastDataPacket.setSenderId(GlobalConstant.user.getUserId());
+            broadcastDataPacket.setSenderId(GlobalObject.ME.getUserId());
             broadcastDataPacket.setContent(content);
             String out = JSON.toJSONString(broadcastDataPacket);
-            channel.writeAndFlush(new DatagramPacket(
-                    Unpooled.copiedBuffer(out.getBytes()), GlobalConstant.serverAddress
+            GlobalObject.channel.writeAndFlush(new DatagramPacket(
+                    Unpooled.copiedBuffer(out.getBytes()), GlobalObject.serverAddress
             ));
         });
         SoftInputListener.setListener(this, new SoftInputListener.OnSoftKeyBoardChangeListener() {
@@ -142,7 +137,7 @@ public class MainActivity extends BaseActivity
         binding.titleLayout.titleNameTv.setText("UIM");
         binding.titleLayout.actionBarIv.setOnClickListener(v -> {
             Intent intent = new Intent();
-            intent.setClass(MainActivity.this, VideoChatActivity.class);
+            intent.setClass(MainActivity.this, ChatInfoActivity.class);
             startActivity(intent);
         });
     }
@@ -200,10 +195,11 @@ public class MainActivity extends BaseActivity
 
     @Override
     public void handle(BasePacket basePacket) {
+        super.handle(basePacket);
         if (basePacket instanceof BroadcastDataPacket) {
             BroadcastDataPacket broadcastDataPacket = (BroadcastDataPacket) basePacket;
             ChatMsg chatMsg = new ChatMsg();
-            if (broadcastDataPacket.getSenderId().equals(GlobalConstant.user.getUserId())) {
+            if (broadcastDataPacket.getSenderId().equals(GlobalObject.ME.getUserId())) {
                 chatMsg.setItemType(ChatMsg.RIGHT_TYPE);
             }else {
                 chatMsg.setItemType(ChatMsg.LEFT_TYPE);

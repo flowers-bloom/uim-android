@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class ChatMsgAdapter extends RecyclerView.Adapter<ChatMsgAdapter.ViewHolder> {
+public class ChatMsgAdapter extends RecyclerView.Adapter<ViewHolder> {
     private static final SimpleDateFormat SDF = new SimpleDateFormat("MM.dd HH:mm");
 
     private Activity activity;
@@ -79,12 +79,5 @@ public class ChatMsgAdapter extends RecyclerView.Adapter<ChatMsgAdapter.ViewHold
     public void insertItem(ChatMsg chatMsg) {
         msgList.add(chatMsg);
         notifyItemInserted(msgList.size()-1);
-    }
-
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-
-        public ViewHolder(@NonNull View itemView) {
-            super(itemView);
-        }
     }
 }
